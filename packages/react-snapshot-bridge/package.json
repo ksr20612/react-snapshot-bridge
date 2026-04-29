@@ -11,27 +11,46 @@
     "useLayoutEffect",
     "before-mutation"
   ],
-  "author": "ksr20612",
+  "author": {
+    "name": "ksr20612",
+    "url": "https://github.com/ksr20612"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/ksr20612/react-snapshot-bridge.git",
     "directory": "packages/react-snapshot-bridge"
   },
-  "homepage": "https://github.com/ksr20612/react-snapshot-bridge#readme",
+  "homepage": "https://react-snapshot-bridge.vercel.app",
+  "bugs": {
+    "url": "https://github.com/ksr20612/react-snapshot-bridge/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "engines": {
     "node": ">=20"
   },
