@@ -1,0 +1,92 @@
+name: Release react-snapshot-bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packages/react-snapshot-bridge/**'
+      - '.github/workflows/release-react-snapshot-bridge.yml'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-react-snapshot-bridge-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Read package metadata and check existing version
+        id: meta
+        working-directory: packages/react-snapshot-bridge
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          echo "name=$NAME"       >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "exists=true"  >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION already published. Will skip publish steps."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION is new. Will proceed with publish."
+          fi
+
+      - name: Skip notice
+        if: steps.meta.outputs.exists == 'true'
+        run: echo "react-snapshot-bridge@${{ steps.meta.outputs.version }} already on npm. Nothing to do."
+
+      - name: Typecheck
+        if: steps.meta.outputs.exists == 'false'
+        run: pnpm --filter react-snapshot-bridge typecheck
+
+      - name: Test
+        if: steps.meta.outputs.exists == 'false'
+        run: pnpm --filter react-snapshot-bridge test
+
+      - name: Build
+        if: steps.meta.outputs.exists == 'false'
+        run: pnpm --filter react-snapshot-bridge build
+
+      - name: Publish to npm with provenance
+        if: steps.meta.outputs.exists == 'false'
+        working-directory: packages/react-snapshot-bridge
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm publish --access public --provenance --no-git-checks --ignore-scripts
+
+      - name: Create git tag and GitHub Release
+        if: steps.meta.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: react-snapshot-bridge@${{ steps.meta.outputs.version }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          git tag "$TAG"
+          git push origin "$TAG"
+          gh release create "$TAG" \
+            --title "react-snapshot-bridge $VERSION" \
+            --generate-notes
