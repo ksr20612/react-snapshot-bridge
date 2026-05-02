@@ -3,6 +3,12 @@ import type { ReactNode } from "react";
 
 type EmptyState = Record<string, never>;
 
+/**
+ * Symbol used to indicate that the snapshot should be skipped.
+ */
+const SKIP = Symbol("react-snapshot-bridge-skip");
+type Skip = typeof SKIP;
+
 export interface SnapshotBeforeUpdateProps<T> {
   /**
    * Runs synchronously **before** the DOM is mutated for this commit.
@@ -15,6 +21,16 @@ export interface SnapshotBeforeUpdateProps<T> {
    * Receives the value previously returned from {@link SnapshotBeforeUpdateProps.capture}.
    */
   apply: (snapshot: T) => void;
+
+  /**
+   * When `false`, both `capture` and `apply` are skipped for that commit.
+   * Evaluated against the **current** props at commit time, so toggling
+   * `true` -> `false` skips both callbacks for that update, and `false` -> `true`
+   * runs both as usual on the next update. Defaults to `true`.
+   *
+   * Updates that occur while disabled are not buffered or replayed later.
+   */
+  enabled?: boolean;
 
   /**
    * Optional children. When provided, this component acts as a wrapper and
@@ -37,6 +53,9 @@ export class SnapshotBeforeUpdate<T = unknown> extends Component<
   EmptyState
 > {
   override getSnapshotBeforeUpdate(): T {
+    if (this.props.enabled === false) {
+      return SKIP as unknown as T;
+    }
     return this.props.capture();
   }
 
@@ -45,6 +64,9 @@ export class SnapshotBeforeUpdate<T = unknown> extends Component<
     _prevState: Readonly<EmptyState>,
     snapshot: T,
   ): void {
+    if (this.props.enabled === false) return;
+    if ((snapshot as unknown as Skip) === SKIP) return;
+
     this.props.apply(snapshot);
   }
 

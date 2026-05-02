@@ -20,6 +20,8 @@ import { SnapshotBeforeUpdate } from "react-snapshot-bridge";
 </SnapshotBeforeUpdate>;
 ```
 
+The bridge supports an optional `enabled` prop (default `true`) so you can turn the lifecycle off and on without unmounting it. See the [package README](./packages/react-snapshot-bridge/README.md) for the full API and placement guide — in short, the bridge must live **inside** the component whose updates you want to observe, not as a sibling of it.
+
 ## Development
 
 ```bash
