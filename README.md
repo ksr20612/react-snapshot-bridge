@@ -1,6 +1,11 @@
 # react-snapshot-bridge
 
-A monorepo for `react-snapshot-bridge` — a tiny library that lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
+`react-snapshot-bridge` lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
+
+[![npm](https://img.shields.io/npm/v/react-snapshot-bridge.svg)](https://www.npmjs.com/package/react-snapshot-bridge)
+[![bundle](https://img.shields.io/bundlephobia/minzip/react-snapshot-bridge)](https://bundlephobia.com/package/react-snapshot-bridge)
+[![docs](https://img.shields.io/badge/docs-react--snapshot--bridge-0284c7)](https://react-snapshot-bridge.vercel.app/)
+[![license](https://img.shields.io/npm/l/react-snapshot-bridge.svg)](./LICENSE)
 
 ## Why
 
@@ -19,6 +24,8 @@ import { SnapshotBeforeUpdate } from "react-snapshot-bridge";
   <ChatList ref={listRef} messages={messages} />
 </SnapshotBeforeUpdate>;
 ```
+
+The bridge supports an optional `enabled` prop (default `true`) so you can turn the lifecycle off and on without unmounting it. See the [package README](./packages/react-snapshot-bridge/README.md) for the full API and placement guide — in short, the bridge must live **inside** the component whose updates you want to observe, not as a sibling of it.
 
 ## Development
 
