@@ -2,6 +2,11 @@
 
 A monorepo for `react-snapshot-bridge` — a tiny library that lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
 
+[![npm](https://img.shields.io/npm/v/react-snapshot-bridge.svg)](https://www.npmjs.com/package/react-snapshot-bridge)
+[![bundle](https://img.shields.io/bundlephobia/minzip/react-snapshot-bridge)](https://bundlephobia.com/package/react-snapshot-bridge)
+[![docs](https://img.shields.io/badge/docs-react--snapshot--bridge-0284c7)](https://react-snapshot-bridge.vercel.app/)
+[![license](https://img.shields.io/npm/l/react-snapshot-bridge.svg)](./LICENSE)
+
 ## Why
 
 `useLayoutEffect` runs **after** the DOM is mutated, so it cannot observe the previous DOM state (scroll position, selection, dimensions). `getSnapshotBeforeUpdate` runs **right before** the mutation and returns a value that is forwarded to `componentDidUpdate`. There is no built-in hook equivalent. This library exposes that missing slot via a single wrapper component you can drop into any function component tree.

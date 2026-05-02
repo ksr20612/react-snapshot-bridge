@@ -76,7 +76,7 @@ function ChatList() {
 The example below combines two ideas at once:
 
 1. Capture two DOM-derived values (`distanceFromBottom`, `wasAtBottom`) into one snapshot.
-2. Reach into the surrounding component's state via **closure** (`messages.length`) so `apply` can compare "before" with "after" without a separate ref.
+2. Track the **previous** message count with a ref (synced at the end of `apply`), read the **current** `messages` in `apply` via closure, and read DOM in `capture` before the commit mutates it.
 
 ```tsx
 import { useRef } from "react";
@@ -85,11 +85,12 @@ import { SnapshotBeforeUpdate } from "react-snapshot-bridge";
 type Snap = {
   distanceFromBottom: number;
   wasAtBottom: boolean;
-  prevCount: number;
+  previousMessageCount: number;
 };
 
 function ChatList({ messages }: { messages: string[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const prevMessageCountRef = useRef(messages.length);
 
   return (
     <SnapshotBeforeUpdate<Snap>
@@ -100,20 +101,26 @@ function ChatList({ messages }: { messages: string[] }) {
         return {
           distanceFromBottom,
           wasAtBottom: distanceFromBottom < 16,
-          // `messages` here is the value at this commit — by the time `apply`
-          // runs, the closure inside `apply` will see the new `messages`.
-          prevCount: messages.length,
+          // Still the count from the end of the last `apply` (or initial render).
+          previousMessageCount: prevMessageCountRef.current,
         };
       }}
-      apply={({ distanceFromBottom, wasAtBottom, prevCount }) => {
+      apply={({
+        distanceFromBottom,
+        wasAtBottom,
+        previousMessageCount,
+      }) => {
         const el = scrollerRef.current!;
-        const grewAtTop = messages.length > prevCount;
+        const grewAtTop = messages.length > previousMessageCount;
 
         if (wasAtBottom) {
           el.scrollTop = el.scrollHeight; // stick to bottom for new arrivals
         } else if (grewAtTop) {
           el.scrollTop = el.scrollHeight - distanceFromBottom; // anchor existing content
         }
+
+        // Next `capture` reads this as the "previous" count for that commit.
+        prevMessageCountRef.current = messages.length;
       }}
     >
       <div ref={scrollerRef} style={{ height: 200, overflow: "auto" }}>
