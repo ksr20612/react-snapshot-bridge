@@ -1,6 +1,6 @@
 # react-snapshot-bridge
 
-A monorepo for `react-snapshot-bridge` — a tiny library that lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
+`react-snapshot-bridge` lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
 
 [![npm](https://img.shields.io/npm/v/react-snapshot-bridge.svg)](https://www.npmjs.com/package/react-snapshot-bridge)
 [![bundle](https://img.shields.io/bundlephobia/minzip/react-snapshot-bridge)](https://bundlephobia.com/package/react-snapshot-bridge)
