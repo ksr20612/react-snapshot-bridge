@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
     paths:
-      - 'packages/react-snapshot-bridge/**'
-      - '.github/workflows/release-react-snapshot-bridge.yml'
+      - "packages/react-snapshot-bridge/**"
+      - ".github/workflows/release-react-snapshot-bridge.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
