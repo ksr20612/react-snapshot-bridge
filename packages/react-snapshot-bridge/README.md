@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    src="https://react-snapshot-bridge.vercel.app/logo.png"
+    alt="react-snapshot-bridge logo"
+    width="500"
+  />
+</p>
+
 # react-snapshot-bridge
 
 > Use React's class-only `getSnapshotBeforeUpdate` lifecycle from **function components**.
@@ -212,7 +220,8 @@ The captured value is forwarded to `componentDidUpdate`, which calls `apply`. Fr
 
 ## Caveats
 
-- **No call on initial mount.** Like the underlying class lifecycle, neither `capture` nor `apply` runs the first time the component appears — only on subsequent updates.
+- **No call on initial mount.** Like the underlying class lifecycle, neither `capture` nor `apply` runs the first time the component appears — only on subsequent updates. `getSnapshotBeforeUpdate` is **update-only**, so you cannot use this bridge to snapshot the DOM immediately before the component's **initial** appearance on screen. When someone says "before first paint," clarify whether they mean the **first mount paint** (not covered by this lifecycle) or a **later update commit** (see next bullet).
+- **Updates run before DOM mutation for that commit.** After mount, whenever the bridge commits an update, `capture` runs in the **before mutation** phase: before the DOM reflects that commit's output and before the browser paints that update. That is the timing slot this library occupies (see [How it works](#how-it-works)).
 - **Requires a re-render in the right place.** If a `React.memo` (or `shouldComponentUpdate`) ancestor short-circuits the render, or the bridge is placed as a sibling of a different component that updates on its own, neither callback will fire. See [Where to place it](#where-to-place-it).
 - **`enabled={false}` does not buffer updates.** Updates that occur while disabled are silently dropped. There is no "catch up" call when you re-enable the bridge — the next regular update is what triggers `capture`/`apply` again.
 - **Concurrent rendering safe.** React 18+ concurrent features may discard render results, but the commit phase itself is synchronous, so `capture`/`apply` always run as a paired set.
