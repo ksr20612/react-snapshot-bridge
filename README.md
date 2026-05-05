@@ -1,3 +1,11 @@
+<p align="center">
+  <img
+    src="https://react-snapshot-bridge.vercel.app/logo.png"
+    alt="react-snapshot-bridge logo"
+    width="500"
+  />
+</p>
+
 # react-snapshot-bridge
 
 `react-snapshot-bridge` lets React **function components** use the class-only `getSnapshotBeforeUpdate` lifecycle.
