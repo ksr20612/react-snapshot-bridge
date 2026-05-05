@@ -1,12 +1,12 @@
-import { Component } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode } from 'react';
+import { Component } from 'react';
 
 type EmptyState = Record<string, never>;
 
 /**
  * Symbol used to indicate that the snapshot should be skipped.
  */
-const SKIP = Symbol("react-snapshot-bridge-skip");
+const SKIP = Symbol('react-snapshot-bridge-skip');
 type Skip = typeof SKIP;
 
 export interface SnapshotBeforeUpdateProps<T> {
