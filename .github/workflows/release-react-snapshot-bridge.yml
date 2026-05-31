@@ -72,10 +72,16 @@ jobs:
         if: steps.meta.outputs.exists == 'false'
         run: pnpm --filter react-snapshot-bridge build
 
-      - name: Publish to npm with provenance
+      - name: Upgrade npm for OIDC trusted publishing
+        if: steps.meta.outputs.exists == 'false'
+        run: npm install -g npm@latest
+
+      - name: Publish to npm with provenance (OIDC)
         if: steps.meta.outputs.exists == 'false'
         working-directory: packages/react-snapshot-bridge
-        run: pnpm publish --access public --provenance --no-git-checks --ignore-scripts
+        run: |
+          pnpm pack
+          npm publish *.tgz --access public --provenance
 
       - name: Create git tag and GitHub Release
         if: steps.meta.outputs.exists == 'false'
