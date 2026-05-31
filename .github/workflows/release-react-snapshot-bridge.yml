@@ -75,8 +75,6 @@ jobs:
       - name: Publish to npm with provenance
         if: steps.meta.outputs.exists == 'false'
         working-directory: packages/react-snapshot-bridge
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm publish --access public --provenance --no-git-checks --ignore-scripts
 
       - name: Create git tag and GitHub Release
