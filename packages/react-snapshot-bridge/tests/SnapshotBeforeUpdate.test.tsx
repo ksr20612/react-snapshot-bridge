@@ -300,4 +300,146 @@ describe('SnapshotBeforeUpdate', () => {
       expect(apply).not.toHaveBeenCalled();
     });
   });
+
+  describe('deps prop', () => {
+    it('runs on every update when deps is omitted (default behavior unchanged)', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value }: { value: number }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} />);
+      act(() => {
+        rerender(<Host value={2} />);
+      });
+      act(() => {
+        rerender(<Host value={3} />);
+      });
+
+      expect(capture).toHaveBeenCalledTimes(2);
+      expect(apply).toHaveBeenCalledTimes(2);
+    });
+
+    it('runs only on commits where a dep changed', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value, dep }: { value: number; dep: number }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply} deps={[dep]}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} dep={0} />);
+
+      // value changes but dep stays the same -> skipped
+      act(() => {
+        rerender(<Host value={2} dep={0} />);
+      });
+      expect(capture).not.toHaveBeenCalled();
+      expect(apply).not.toHaveBeenCalled();
+
+      // dep changes -> runs
+      act(() => {
+        rerender(<Host value={3} dep={1} />);
+      });
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(apply).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips both callbacks when deps are shallowly equal', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value }: { value: number }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply} deps={['a', 1]}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} />);
+      act(() => {
+        rerender(<Host value={2} />);
+      });
+
+      expect(capture).not.toHaveBeenCalled();
+      expect(apply).not.toHaveBeenCalled();
+    });
+
+    it('treats a change in deps length as a change', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value, deps }: { value: number; deps: number[] }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply} deps={deps}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} deps={[1]} />);
+      act(() => {
+        rerender(<Host value={2} deps={[1, 2]} />);
+      });
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(apply).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets enabled={false} take precedence over a changed dep', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value, dep }: { value: number; dep: number }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply} enabled={false} deps={[dep]}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} dep={0} />);
+      act(() => {
+        rerender(<Host value={2} dep={1} />);
+      });
+
+      expect(capture).not.toHaveBeenCalled();
+      expect(apply).not.toHaveBeenCalled();
+    });
+
+    it('never runs after mount when deps is an empty array', () => {
+      const capture = vi.fn(() => 'snap');
+      const apply = vi.fn();
+
+      function Host({ value }: { value: number }) {
+        return (
+          <SnapshotBeforeUpdate capture={capture} apply={apply} deps={[]}>
+            <div>{value}</div>
+          </SnapshotBeforeUpdate>
+        );
+      }
+
+      const { rerender } = render(<Host value={1} />);
+      act(() => {
+        rerender(<Host value={2} />);
+      });
+      act(() => {
+        rerender(<Host value={3} />);
+      });
+
+      expect(capture).not.toHaveBeenCalled();
+      expect(apply).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -1,12 +1,13 @@
-import type { ReactNode } from 'react';
-import { Component } from 'react';
+import type { ReactNode } from "react";
+import { Component } from "react";
+import checkIsDepsEqual from "./_utils/checkIsDepsEqual";
 
 type EmptyState = Record<string, never>;
 
 /**
  * Symbol used to indicate that the snapshot should be skipped.
  */
-const SKIP = Symbol('react-snapshot-bridge-skip');
+const SKIP = Symbol("react-snapshot-bridge-skip");
 type Skip = typeof SKIP;
 
 export interface SnapshotBeforeUpdateProps<T> {
@@ -33,6 +34,14 @@ export interface SnapshotBeforeUpdateProps<T> {
   enabled?: boolean;
 
   /**
+   * Optional dependency array, compared shallowly (`Object.is`) against the
+   * previous commit. When provided, both `capture` and `apply` run only on the
+   * commit where at least one entry changed; commits with unchanged `deps` are
+   * skipped. When omitted, both callbacks run on every update (default).
+   */
+  deps?: readonly unknown[];
+
+  /**
    * Optional children. When provided, this component acts as a wrapper and
    * renders its children. When omitted, it renders nothing and you can place
    * it as a sibling next to the elements you care about.
@@ -50,22 +59,29 @@ export interface SnapshotBeforeUpdateProps<T> {
  */
 export class SnapshotBeforeUpdate<T = unknown> extends Component<
   SnapshotBeforeUpdateProps<T>,
-  EmptyState
+  EmptyState,
+  T | Skip
 > {
-  override getSnapshotBeforeUpdate(): T {
-    if (this.props.enabled === false) {
-      return SKIP as unknown as T;
-    }
+  override getSnapshotBeforeUpdate(
+    prevProps: Readonly<SnapshotBeforeUpdateProps<T>>,
+  ): T | Skip {
+    if (this.props.enabled === false) return SKIP;
+
+    if (
+      this.props.deps !== undefined &&
+      checkIsDepsEqual(prevProps.deps, this.props.deps)
+    )
+      return SKIP;
+
     return this.props.capture();
   }
 
   override componentDidUpdate(
     _prevProps: Readonly<SnapshotBeforeUpdateProps<T>>,
     _prevState: Readonly<EmptyState>,
-    snapshot: T,
+    snapshot: T | Skip,
   ): void {
-    if (this.props.enabled === false) return;
-    if ((snapshot as unknown as Skip) === SKIP) return;
+    if (snapshot === SKIP) return;
 
     this.props.apply(snapshot);
   }
