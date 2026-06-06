@@ -150,6 +150,7 @@ function ChatList({ messages }: { messages: string[] }) {
 | `capture`  | `() => T`               | yes      | Called synchronously **before** DOM mutation. Return value is forwarded to `apply`.                                        |
 | `apply`    | `(snapshot: T) => void` | yes      | Called synchronously **after** DOM mutation, before paint. Receives the value from `capture`.                              |
 | `enabled`  | `boolean`               | no       | Defaults to `true`. When `false`, both `capture` and `apply` are skipped for that commit. Missed updates are not replayed. |
+| `deps`     | `readonly unknown[]`    | no       | Optional dependency array, compared shallowly (`Object.is`) against the previous commit. When provided, both callbacks run only on commits where at least one entry changed. When omitted, they run on every update. |
 | `children` | `React.ReactNode`       | no       | Optional. When provided, rendered as-is (wrapper pattern). When omitted, renders nothing.                                  |
 
 The generic `T` is inferred from `capture`'s return type — you usually don't need to specify it.
@@ -224,6 +225,7 @@ The captured value is forwarded to `componentDidUpdate`, which calls `apply`. Fr
 - **Updates run before DOM mutation for that commit.** After mount, whenever the bridge commits an update, `capture` runs in the **before mutation** phase: before the DOM reflects that commit's output and before the browser paints that update. That is the timing slot this library occupies (see [How it works](#how-it-works)).
 - **Requires a re-render in the right place.** If a `React.memo` (or `shouldComponentUpdate`) ancestor short-circuits the render, or the bridge is placed as a sibling of a different component that updates on its own, neither callback will fire. See [Where to place it](#where-to-place-it).
 - **`enabled={false}` does not buffer updates.** Updates that occur while disabled are silently dropped. There is no "catch up" call when you re-enable the bridge — the next regular update is what triggers `capture`/`apply` again.
+- **`deps={[]}` differs from `useEffect`.** Because an empty array never changes and this lifecycle never runs on mount, `deps={[]}` means "never run after mount" — not "run once on mount" as it would with `useEffect`. Use a populated `deps` array (e.g. `[messages.length]`) to gate by meaningful changes.
 - **Concurrent rendering safe.** React 18+ concurrent features may discard render results, but the commit phase itself is synchronous, so `capture`/`apply` always run as a paired set.
 - **SSR safe.** Lifecycle methods don't run during `renderToString` / `renderToPipeableStream`, so the bridge is a no-op on the server.
 - **React 19.** Class components and `getSnapshotBeforeUpdate` are not deprecated in React 19. This library remains compatible.
