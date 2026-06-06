@@ -1,13 +1,13 @@
-import type { ReactNode } from "react";
-import { Component } from "react";
-import checkIsDepsEqual from "./_utils/checkIsDepsEqual";
+import type { ReactNode } from 'react';
+import { Component } from 'react';
+import checkIsDepsEqual from './_utils/checkIsDepsEqual';
 
 type EmptyState = Record<string, never>;
 
 /**
  * Symbol used to indicate that the snapshot should be skipped.
  */
-const SKIP = Symbol("react-snapshot-bridge-skip");
+const SKIP = Symbol('react-snapshot-bridge-skip');
 type Skip = typeof SKIP;
 
 export interface SnapshotBeforeUpdateProps<T> {
@@ -62,15 +62,10 @@ export class SnapshotBeforeUpdate<T = unknown> extends Component<
   EmptyState,
   T | Skip
 > {
-  override getSnapshotBeforeUpdate(
-    prevProps: Readonly<SnapshotBeforeUpdateProps<T>>,
-  ): T | Skip {
+  override getSnapshotBeforeUpdate(prevProps: Readonly<SnapshotBeforeUpdateProps<T>>): T | Skip {
     if (this.props.enabled === false) return SKIP;
 
-    if (
-      this.props.deps !== undefined &&
-      checkIsDepsEqual(prevProps.deps, this.props.deps)
-    )
+    if (this.props.deps !== undefined && checkIsDepsEqual(prevProps.deps, this.props.deps))
       return SKIP;
 
     return this.props.capture();
