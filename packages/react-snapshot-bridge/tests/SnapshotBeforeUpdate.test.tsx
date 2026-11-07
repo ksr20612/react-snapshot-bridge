@@ -63,6 +63,48 @@ describe('SnapshotBeforeUpdate', () => {
     expect(apply).toHaveBeenCalledWith(SNAPSHOT);
   });
 
+  it('forwards undefined without React warning that the snapshot is missing', () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const apply = vi.fn();
+
+    function Host({ value }: { value: number }) {
+      return (
+        <SnapshotBeforeUpdate capture={() => undefined} apply={apply}>
+          <div>{value}</div>
+        </SnapshotBeforeUpdate>
+      );
+    }
+
+    const { rerender } = render(<Host value={1} />);
+    rerender(<Host value={2} />);
+
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply).toHaveBeenCalledWith(undefined);
+    const snapshotWarnings = error.mock.calls.filter((args) =>
+      args.some((arg) => typeof arg === 'string' && arg.includes('getSnapshotBeforeUpdate')),
+    );
+    expect(snapshotWarnings).toEqual([]);
+    error.mockRestore();
+  });
+
+  it('forwards null as a real snapshot', () => {
+    const apply = vi.fn();
+
+    function Host({ value }: { value: number }) {
+      return (
+        <SnapshotBeforeUpdate capture={() => null} apply={apply}>
+          <div>{value}</div>
+        </SnapshotBeforeUpdate>
+      );
+    }
+
+    const { rerender } = render(<Host value={1} />);
+    rerender(<Host value={2} />);
+
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(apply).toHaveBeenCalledWith(null);
+  });
+
   it('observes the previous DOM in capture and the new DOM in apply', () => {
     const ref = createRef<HTMLDivElement>();
     let capturedText: string | null | undefined;

@@ -46,13 +46,21 @@ Peer dependency: `react >= 16.3` (when `getSnapshotBeforeUpdate` was introduced)
 import { useRef, useState } from "react";
 import { SnapshotBeforeUpdate } from "react-snapshot-bridge";
 
+type Message = { id: number; text: string };
+
 function ChatList() {
   const scrollerRef = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<string[]>(["hi"]);
+  const nextId = useRef(1);
+  const [messages, setMessages] = useState<Message[]>([{ id: 0, text: "hi" }]);
 
   return (
     <>
-      <button onClick={() => setMessages((m) => ["new message", ...m])}>
+      <button
+        onClick={() => {
+          const id = nextId.current++;
+          setMessages((m) => [{ id, text: "new message" }, ...m]);
+        }}
+      >
         Prepend
       </button>
 
@@ -66,9 +74,12 @@ function ChatList() {
           el.scrollTop = el.scrollHeight - prevDistanceFromBottom;
         }}
       >
-        <div ref={scrollerRef} style={{ height: 200, overflow: "auto" }}>
-          {messages.map((msg, i) => (
-            <div key={i}>{msg}</div>
+        <div
+          ref={scrollerRef}
+          style={{ height: 200, overflow: "auto", overflowAnchor: "none" }}
+        >
+          {messages.map((msg) => (
+            <div key={msg.id}>{msg.text}</div>
           ))}
         </div>
       </SnapshotBeforeUpdate>
@@ -79,26 +90,32 @@ function ChatList() {
 
 Without the wrapper, every prepend visually shifts the user's content down. With it, the visible content stays anchored.
 
+Give each row a stable `id`. An index key makes React reuse the existing nodes from the top, so a prepend is reconciled like an append and this anchor no longer matches what the reader is looking at.
+
+`overflow-anchor: none` turns off the browser's own scroll anchoring. Without that, Chrome and Safari often keep the same row in view by themselves, and the jump this wrapper corrects stays hidden.
+
 ## Capturing multiple values
 
 `capture` returns a single value, but that value can be **any shape** — including an object. This is the recommended way to forward multiple pieces of state in one commit, and it keeps the API surface minimal and type-safe.
 
 The example below combines two ideas at once:
 
-1. Capture two DOM-derived values (`distanceFromBottom`, `wasAtBottom`) into one snapshot.
+1. Capture the scroll anchor (`anchorFromBottom`, the same `scrollHeight - scrollTop` value as the quick start) and whether the reader was already at the bottom.
 2. Track the **previous** message count with a ref (synced at the end of `apply`), read the **current** `messages` in `apply` via closure, and read DOM in `capture` before the commit mutates it.
 
 ```tsx
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { SnapshotBeforeUpdate } from "react-snapshot-bridge";
 
+type Message = { id: number; text: string };
+
 type Snap = {
-  distanceFromBottom: number;
+  anchorFromBottom: number;
   wasAtBottom: boolean;
   previousMessageCount: number;
 };
 
-function ChatList({ messages }: { messages: string[] }) {
+function ChatList({ messages }: { messages: Message[] }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(messages.length);
 
@@ -106,32 +123,35 @@ function ChatList({ messages }: { messages: string[] }) {
     <SnapshotBeforeUpdate<Snap>
       capture={() => {
         const el = scrollerRef.current!;
-        const distanceFromBottom =
-          el.scrollHeight - el.scrollTop - el.clientHeight;
+        const anchorFromBottom = el.scrollHeight - el.scrollTop;
+        const gapBelowViewport = anchorFromBottom - el.clientHeight;
         return {
-          distanceFromBottom,
-          wasAtBottom: distanceFromBottom < 16,
+          anchorFromBottom,
+          wasAtBottom: gapBelowViewport < 16,
           // Still the count from the end of the last `apply` (or initial render).
           previousMessageCount: prevMessageCountRef.current,
         };
       }}
-      apply={({ distanceFromBottom, wasAtBottom, previousMessageCount }) => {
+      apply={({ anchorFromBottom, wasAtBottom, previousMessageCount }) => {
         const el = scrollerRef.current!;
         const grewAtTop = messages.length > previousMessageCount;
 
         if (wasAtBottom) {
           el.scrollTop = el.scrollHeight; // stick to bottom for new arrivals
         } else if (grewAtTop) {
-          el.scrollTop = el.scrollHeight - distanceFromBottom; // anchor existing content
+          el.scrollTop = el.scrollHeight - anchorFromBottom; // anchor existing content
         }
 
         // Next `capture` reads this as the "previous" count for that commit.
         prevMessageCountRef.current = messages.length;
       }}
     >
-      <div ref={scrollerRef} style={{ height: 200, overflow: "auto" }}>
-        {messages.map((msg, i) => (
-          <div key={i}>{msg}</div>
+      <div
+        ref={scrollerRef}
+        style={{ height: 200, overflow: "auto", overflowAnchor: "none" }}
+      >
+        {messages.map((msg) => (
+          <div key={msg.id}>{msg.text}</div>
         ))}
       </div>
     </SnapshotBeforeUpdate>
@@ -143,11 +163,11 @@ function ChatList({ messages }: { messages: string[] }) {
 
 ## API
 
-### `<SnapshotBeforeUpdate<T> capture apply enabled?>{children?}</SnapshotBeforeUpdate>`
+### `<SnapshotBeforeUpdate<T> capture apply enabled? deps?>{children?}</SnapshotBeforeUpdate>`
 
 | Prop       | Type                    | Required | Description                                                                                                                |
 | ---------- | ----------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `capture`  | `() => T`               | yes      | Called synchronously **before** DOM mutation. Return value is forwarded to `apply`.                                        |
+| `capture`  | `() => T`               | yes      | Called synchronously **before** DOM mutation. Return value, including `undefined`, is forwarded to `apply`.                 |
 | `apply`    | `(snapshot: T) => void` | yes      | Called synchronously **after** DOM mutation, before paint. Receives the value from `capture`.                              |
 | `enabled`  | `boolean`               | no       | Defaults to `true`. When `false`, both `capture` and `apply` are skipped for that commit. Missed updates are not replayed. |
 | `deps`     | `readonly unknown[]`    | no       | Optional dependency array, compared shallowly (`Object.is`) against the previous commit. When provided, both callbacks run only on commits where at least one entry changed. When omitted, they run on every update. |
@@ -228,6 +248,7 @@ The captured value is forwarded to `componentDidUpdate`, which calls `apply`. Fr
 - **`deps={[]}` differs from `useEffect`.** Because an empty array never changes and this lifecycle never runs on mount, `deps={[]}` means "never run after mount" — not "run once on mount" as it would with `useEffect`. Use a populated `deps` array (e.g. `[messages.length]`) to gate by meaningful changes.
 - **Concurrent rendering safe.** React 18+ concurrent features may discard render results, but the commit phase itself is synchronous, so `capture`/`apply` always run as a paired set.
 - **SSR safe.** Lifecycle methods don't run during `renderToString` / `renderToPipeableStream`, so the bridge is a no-op on the server.
+- **Client Component.** The package entry starts with `'use client'`. In the Next.js App Router, render it from a Client Component. `capture` and `apply` are functions, so a Server Component cannot pass them into this wrapper.
 - **React 19.** Class components and `getSnapshotBeforeUpdate` are not deprecated in React 19. This library remains compatible.
 
 ## License
