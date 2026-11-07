@@ -10,10 +10,19 @@ type EmptyState = Record<string, never>;
 const SKIP = Symbol('react-snapshot-bridge-skip');
 type Skip = typeof SKIP;
 
+/**
+ * React logs an error when `getSnapshotBeforeUpdate` returns `undefined`.
+ * Boxing the value lets `capture` return `undefined` and still forward it to `apply`.
+ */
+type BoxedSnapshot<T> = {
+  readonly value: T;
+};
+
 export interface SnapshotBeforeUpdateProps<T> {
   /**
    * Runs synchronously **before** the DOM is mutated for this commit.
    * Whatever you return here is forwarded to {@link SnapshotBeforeUpdateProps.apply}.
+   * `undefined` is a valid snapshot and is forwarded unchanged.
    */
   capture: () => T;
 
@@ -60,25 +69,27 @@ export interface SnapshotBeforeUpdateProps<T> {
 export class SnapshotBeforeUpdate<T = unknown> extends Component<
   SnapshotBeforeUpdateProps<T>,
   EmptyState,
-  T | Skip
+  BoxedSnapshot<T> | Skip
 > {
-  override getSnapshotBeforeUpdate(prevProps: Readonly<SnapshotBeforeUpdateProps<T>>): T | Skip {
+  override getSnapshotBeforeUpdate(
+    prevProps: Readonly<SnapshotBeforeUpdateProps<T>>,
+  ): BoxedSnapshot<T> | Skip {
     if (this.props.enabled === false) return SKIP;
 
     if (this.props.deps !== undefined && checkIsDepsEqual(prevProps.deps, this.props.deps))
       return SKIP;
 
-    return this.props.capture();
+    return { value: this.props.capture() };
   }
 
   override componentDidUpdate(
     _prevProps: Readonly<SnapshotBeforeUpdateProps<T>>,
     _prevState: Readonly<EmptyState>,
-    snapshot: T | Skip,
+    snapshot: BoxedSnapshot<T> | Skip,
   ): void {
     if (snapshot === SKIP) return;
 
-    this.props.apply(snapshot);
+    this.props.apply(snapshot.value);
   }
 
   override render(): ReactNode {

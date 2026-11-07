@@ -27,30 +27,9 @@ interface DemoListProps {
 function DemoList({ messages, enabled }: DemoListProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
-  const list = (
-    <div
-      ref={scrollerRef}
-      className="h-56 overflow-y-auto rounded-md border border-fd-border bg-fd-card text-sm"
-    >
-      <ul className="divide-y divide-fd-border">
-        {messages.map((m) => (
-          <li
-            key={m.id}
-            className={`px-3 py-2 transition-colors ${
-              m.fresh ? 'bg-fd-primary/10 text-fd-primary' : 'text-fd-foreground'
-            }`}
-          >
-            {m.text}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
-  if (!enabled) return list;
-
   return (
     <SnapshotBeforeUpdate<number>
+      enabled={enabled}
       capture={() => {
         const el = scrollerRef.current;
         if (!el) return 0;
@@ -62,7 +41,24 @@ function DemoList({ messages, enabled }: DemoListProps) {
         el.scrollTop = el.scrollHeight - prevDistanceFromBottom;
       }}
     >
-      {list}
+      <div
+        ref={scrollerRef}
+        className="h-56 overflow-y-auto rounded-md border border-fd-border bg-fd-card text-sm"
+        style={{ overflowAnchor: 'none' }}
+      >
+        <ul className="divide-y divide-fd-border">
+          {messages.map((m) => (
+            <li
+              key={m.id}
+              className={`px-3 py-2 transition-colors ${
+                m.fresh ? 'bg-fd-primary/10 text-fd-primary' : 'text-fd-foreground'
+              }`}
+            >
+              {m.text}
+            </li>
+          ))}
+        </ul>
+      </div>
     </SnapshotBeforeUpdate>
   );
 }
@@ -121,9 +117,10 @@ export function ScrollPreservationDemo() {
       </div>
 
       <p className="text-xs text-fd-muted-foreground">
-        Scroll the list down a bit, then click <em>Prepend</em>. With the bridge enabled, the
-        message you were reading stays visually anchored. Disable it to see the default behavior
-        where the content jumps down.
+        Scroll down, then click <em>Prepend</em>. With the bridge on, the message you were reading
+        stays put. Turn it off and prepend again to see the content jump. Toggling keeps this list
+        mounted, so your place in the list stays where you left it. The list opts out of the
+        browser&apos;s own scroll anchoring, which would otherwise hide that jump.
       </p>
 
       <DemoList messages={messages} enabled={enabled} />
