@@ -28,7 +28,7 @@ export default defineConfig({
   external: ['react', 'react-dom'],
   // esbuild drops the directive while bundling the entry with its helpers.
   // Put it back on the published files. The source entry keeps it for bundlers that compile src directly.
-  onSuccess() {
+  async onSuccess() {
     prependUseClient('index.js');
     prependUseClient('index.cjs');
   },
