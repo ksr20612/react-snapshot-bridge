@@ -74,7 +74,7 @@ jobs:
 
       - name: Upgrade npm for OIDC trusted publishing
         if: steps.meta.outputs.exists == 'false'
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Publish to npm with provenance (OIDC)
         if: steps.meta.outputs.exists == 'false'
